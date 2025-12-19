@@ -32,7 +32,7 @@ jobs:
           git checkout origin/int
           BRANCH_NAME="int-pr-${{ github.event.number }}-${{ github.run_id }}"
           git checkout -b $BRANCH_NAME
-          git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"
+          git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}" || echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
           git push origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
@@ -40,13 +40,19 @@ jobs:
         uses: actions/github-script@v7
         env:
           NEW_BRANCH: ${{ env.NEW_BRANCH }}
+          MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
         with:
           script: |
+            const hasConflict = process.env.MERGE_CONFLICT === 'true';
+            const conflictNote = hasConflict 
+              ? '\n\n⚠️ **MERGE CONFLICT DETECTED** - Please resolve conflicts in this PR before merging to int.' 
+              : '';
+            
             const { data: pr } = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}`,
-              body: `Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch.`,
+              title: `[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}${hasConflict ? ' [CONFLICTS]' : ''}`,
+              body: `Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch.${conflictNote}`,
               head: process.env.NEW_BRANCH,
               base: 'int'
             });
