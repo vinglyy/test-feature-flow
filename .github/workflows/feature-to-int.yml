@@ -40,16 +40,15 @@ jobs:
           BRANCH_NAME="int-pr-${{ github.event.number }}"
           git checkout -b $BRANCH_NAME
           
-          # Merge only commits that are in feature but NOT in main
-          # Using three-dot syntax: origin/main...origin/feature
-          if git merge origin/main...origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"; then
+          # Cherry-pick only commits that are in feature but NOT in main
+          if git cherry-pick origin/main..origin/${{ github.head_ref }}; then
             echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
             git push origin $BRANCH_NAME
           else
-            # Merge failed due to conflicts - abort merge and push feature branch
+            # Cherry-pick failed due to conflicts - abort and push feature branch
             # GitHub will detect the merge conflict when comparing the branches
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
-            git merge --abort
+            git cherry-pick --abort
             git reset --hard origin/${{ github.head_ref }}
             git push origin $BRANCH_NAME
           fi
