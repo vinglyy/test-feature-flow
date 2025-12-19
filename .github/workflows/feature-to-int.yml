@@ -1,8 +1,8 @@
 name: Create PR from int branch with merged commits
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+  pull_request_target:
+    types: [opened, synchronize, reopened]
     branches:
       - main
 
