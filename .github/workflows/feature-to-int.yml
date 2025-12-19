@@ -36,15 +36,19 @@ jobs:
 
       - name: Create new branch from int and merge commits
         run: |
-          git checkout origin/int
+          # Start from feature and merge int to get proper conflict labels
+          git checkout origin/${{ github.head_ref }}
           BRANCH_NAME="int-pr-${{ github.event.number }}"
           git checkout -b $BRANCH_NAME
           
-          # Merge feature branch - this creates proper conflict markers with branch names
-          if git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"; then
+          # Reset to only include commits unique to feature (not from main)
+          git reset --hard origin/int
+          
+          # Cherry-pick only feature-specific commits (main..feature)
+          if git cherry-pick origin/main..origin/${{ github.head_ref }}; then
             echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
           else
-            # Merge failed - commit the conflicted state with proper labels
+            # Merge failed - commit the conflicted state
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
             git add -A
             git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]" || true
