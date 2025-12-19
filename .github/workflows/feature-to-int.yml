@@ -3,8 +3,8 @@ name: Create PR from int branch with merged commits
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
-    branches:
-      - main
+env:
+  GH_TOKEN: ${{ secrets.YOUR_PAT_SECRET_NAME }}
 
 permissions:
   contents: write
@@ -39,14 +39,16 @@ jobs:
           
           if git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"; then
             echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
+            git push origin $BRANCH_NAME
           else
-            # Merge failed due to conflicts - commit the conflicted state
+            # Merge failed due to conflicts - abort merge and push feature branch
+            # GitHub will detect the merge conflict when comparing the branches
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
-            git add -A
-            git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]"
+            git merge --abort
+            git reset --hard origin/${{ github.head_ref }}
+            git push origin $BRANCH_NAME
           fi
           
-          git push origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Create PR to int branch
