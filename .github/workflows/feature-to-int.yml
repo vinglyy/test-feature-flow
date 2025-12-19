@@ -50,7 +50,7 @@ jobs:
             git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]" || true
           fi
           
-          git push origin $BRANCH_NAME
+          git push -f origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Create PR to int branch
