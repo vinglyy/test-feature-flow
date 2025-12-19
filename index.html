@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Test App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Flow Test Application</h1>
+            <nav class="nav-menu">
+                <ul>
+                    <li><a href="#" data-section="home">Home</a></li>
+                    <li><a href="#" data-section="features">Features</a></li>
+                    <li><a href="#" data-section="forms">Forms</a></li>
+                    <li><a href="#" data-section="dashboard">Dashboard</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Home Section -->
+            <section id="home" class="section active">
+                <h2>Welcome</h2>
+                <p>This is a test application for flow testing.</p>
+                <button class="btn btn-primary" onclick="showAlert('Home button clicked!')">Click Me</button>
+            </section>
+
+            <!-- Features Section -->
+            <section id="features" class="section">
+                <h2>Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>Feature 1</h3>
+                        <p>Test feature one here</p>
+                        <button class="btn btn-secondary">Learn More</button>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Feature 2</h3>
+                        <p>Test feature two here</p>
+                        <button class="btn btn-secondary">Learn More</button>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Feature 3</h3>
+                        <p>Test feature three here</p>
+                        <button class="btn btn-secondary">Learn More</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Forms Section -->
+            <section id="forms" class="section">
+                <h2>Test Form</h2>
+                <form id="testForm" class="form">
+                    <div class="form-group">
+                        <label for="name">Name:</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message:</label>
+                        <textarea id="message" name="message" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+                <div id="formResult" class="form-result"></div>
+            </section>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section">
+                <h2>Dashboard</h2>
+                <div class="stats">
+                    <div class="stat-box">
+                        <h3>Stat 1</h3>
+                        <p class="stat-number">42</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Stat 2</h3>
+                        <p class="stat-number">128</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Stat 3</h3>
+                        <p class="stat-number">256</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Flow Test App. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
