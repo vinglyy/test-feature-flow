@@ -2,9 +2,13 @@ name: Create PR from int branch with merged commits
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened,labeled, unlabeled]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches:
       - main
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   create-int-pr:
@@ -46,24 +50,24 @@ jobs:
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Create PR to int branch
-        uses: actions/github-script@v7
         env:
           NEW_BRANCH: ${{ env.NEW_BRANCH }}
           MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
-        with:
-          script: |
-            const hasConflict = process.env.MERGE_CONFLICT === 'true';
-            const conflictNote = hasConflict 
-              ? '\n\n⚠️ **MERGE CONFLICT DETECTED** - Please resolve conflicts in this PR before merging to int.' 
-              : '';
-            
-            const { data: pr } = await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}${hasConflict ? ' [CONFLICTS]' : ''}`,
-              body: `Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch.${conflictNote}`,
-              head: process.env.NEW_BRANCH,
-              base: 'int'
-            });
-            console.log('Created PR:', pr.number);
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: "[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"
+          CONFLICT_TAG: ${{ env.MERGE_CONFLICT == 'true' && ' [CONFLICTS]' || '' }}
+        run: |
+          TITLE="${{ env.PR_TITLE }}"
+          if [ "${{ env.MERGE_CONFLICT }}" = "true" ]; then
+            TITLE="${TITLE} [CONFLICTS]"
+            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch.\n\n⚠️ **MERGE CONFLICT DETECTED** - Please resolve conflicts in this PR before merging to int."
+          else
+            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch."
+          fi
+          
+          gh pr create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --head ${{ env.NEW_BRANCH }} \
+            --base int
 
