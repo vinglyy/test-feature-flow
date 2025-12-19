@@ -40,19 +40,17 @@ jobs:
           BRANCH_NAME="int-pr-${{ github.event.number }}"
           git checkout -b $BRANCH_NAME
           
-          # Cherry-pick only commits that are in feature but NOT in main
+          # Try to cherry-pick feature commits
           if git cherry-pick origin/main..origin/${{ github.head_ref }}; then
             echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
-            git push origin $BRANCH_NAME
           else
-            # Cherry-pick failed due to conflicts - abort and push feature branch
-            # GitHub will detect the merge conflict when comparing the branches
+            # Cherry-pick failed - commit the conflicted state
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
-            git cherry-pick --abort
-            git reset --hard origin/${{ github.head_ref }}
-            git push origin $BRANCH_NAME
+            git add -A
+            git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]" || true
           fi
           
+          git push origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Create PR to int branch
