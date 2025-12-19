@@ -40,7 +40,9 @@ jobs:
           BRANCH_NAME="int-pr-${{ github.event.number }}-${{ github.run_id }}"
           git checkout -b $BRANCH_NAME
           
-          if git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"; then
+          # Merge only commits that are in feature but NOT in main
+          # Using three-dot syntax: origin/main...origin/feature
+          if git merge origin/main...origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"; then
             echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
             git push origin $BRANCH_NAME
           else
