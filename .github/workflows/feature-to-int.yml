@@ -32,7 +32,16 @@ jobs:
           git checkout origin/int
           BRANCH_NAME="int-pr-${{ github.event.number }}-${{ github.run_id }}"
           git checkout -b $BRANCH_NAME
-          git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}" || echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
+          
+          if git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"; then
+            echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
+          else
+            # Merge failed due to conflicts - commit the conflicted state
+            echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
+            git add -A
+            git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]"
+          fi
+          
           git push origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
