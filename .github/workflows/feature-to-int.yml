@@ -37,7 +37,7 @@ jobs:
       - name: Create new branch from int and merge commits
         run: |
           git checkout origin/int
-          BRANCH_NAME="int-pr-${{ github.event.number }}-${{ github.run_id }}"
+          BRANCH_NAME="int-pr-${{ github.event.number }}"
           git checkout -b $BRANCH_NAME
           
           # Merge only commits that are in feature but NOT in main
