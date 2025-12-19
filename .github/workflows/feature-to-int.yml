@@ -40,11 +40,11 @@ jobs:
           BRANCH_NAME="int-pr-${{ github.event.number }}"
           git checkout -b $BRANCH_NAME
           
-          # Try to cherry-pick feature commits
-          if git cherry-pick origin/main..origin/${{ github.head_ref }}; then
+          # Merge feature branch - this creates proper conflict markers with branch names
+          if git merge origin/${{ github.head_ref }} -m "Merge commits from PR #${{ github.event.number }}"; then
             echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
           else
-            # Cherry-pick failed - commit the conflicted state
+            # Merge failed - commit the conflicted state with proper labels
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
             git add -A
             git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]" || true
