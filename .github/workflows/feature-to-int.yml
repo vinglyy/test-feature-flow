@@ -1,0 +1,81 @@
+name: Create PR from int branch with merged commits
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+env:
+  GH_TOKEN: ${{ secrets.YOUR_PAT_SECRET_NAME }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-int-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all branches
+        run: git fetch origin
+
+      - name: Create new branch from int and merge commits
+        run: |
+          # Start from feature and merge int to get proper conflict labels
+          git checkout origin/${{ github.head_ref }}
+          BRANCH_NAME="int-pr-${{ github.event.number }}"
+          git checkout -b $BRANCH_NAME
+          
+          # Reset to only include commits unique to feature (not from main)
+          git reset --hard origin/int
+          
+          # Cherry-pick only feature-specific commits (main..feature)
+          if git cherry-pick origin/main..origin/${{ github.head_ref }}; then
+            echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
+          else
+            # Merge failed - commit the conflicted state
+            echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
+            git add -A
+            git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]" || true
+          fi
+          
+          git push -f origin $BRANCH_NAME
+          echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Create PR to int branch
+        env:
+          NEW_BRANCH: ${{ env.NEW_BRANCH }}
+          MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: "[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"
+          CONFLICT_TAG: ${{ env.MERGE_CONFLICT == 'true' && ' [CONFLICTS]' || '' }}
+        run: |
+          TITLE="${{ env.PR_TITLE }}"
+          if [ "${{ env.MERGE_CONFLICT }}" = "true" ]; then
+            TITLE="${TITLE} [CONFLICTS]"
+            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch.\n\n⚠️ **MERGE CONFLICT DETECTED** - Please resolve conflicts in this PR before merging to int."
+          else
+            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch."
+          fi
+          
+          gh pr create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --head ${{ env.NEW_BRANCH }} \
+            --base int
+
