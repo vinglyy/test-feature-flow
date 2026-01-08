@@ -63,7 +63,7 @@ jobs:
 
       - name: Close existing PR and delete old branch
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH_NAME="int-pr-${{ github.event.number }}"
           
