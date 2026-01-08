@@ -178,5 +178,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openssh-server
           sudo service ssh start
-          echo "SSH started on port 22"
-          ip addr show  # Show IP address
+
+          echo "SSH server started"
+          echo "Connect with: ssh runner-user@$(hostname -I | awk '{print $1}')"
+          echo ""
+          read -p "Press ENTER after you've SSH'd in and done debugging..."
+
+          echo "Continuing workflow execution.
