@@ -76,6 +76,17 @@ jobs:
           git push -f origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
+      - name: Check for unresolved conflicts
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+        run: |
+          if grep -r "<<<<<<< \|======= \|>>>>>>>" . --exclude-dir=.git --exclude-dir=.github; then
+            echo "❌ Unresolved conflicts found! Please resolve all <<<<<<, =======, and >>>>>>> markers."
+            exit 1
+          else
+            echo "✅ No conflicts found"
+          fi
+
       - name: Close existing PR and delete old branch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -90,14 +101,10 @@ jobs:
               fi
             done
           fi
-          
-          # Delete the remote branch if it exists
-          if git ls-remote origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
-            echo "Deleting old branch $BRANCH_NAME"
-            git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
-          fi
 
       - name: Check for unresolved conflicts
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
         run: |
           if grep -r "<<<<<<< \|======= \|>>>>>>>" . --exclude-dir=.git --exclude-dir=.github; then
             echo "❌ Unresolved conflicts found! Please resolve all <<<<<<, =======, and >>>>>>> markers."
