@@ -3,7 +3,6 @@ name: Create PR from int branch with merged commits
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
-  push:
     branches:
       - main
 
@@ -19,7 +18,7 @@ jobs:
       pull-requests: write
 
 
-      
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
