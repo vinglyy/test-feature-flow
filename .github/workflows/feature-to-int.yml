@@ -50,33 +50,33 @@ jobs:
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           echo "SOURCE_BRANCH=$SOURCE_BRANCH" >> $GITHUB_ENV
 
-      - name: Create new branch from int and rebase commits
+      - name: Create new branch from int and cherry-pick commits
         env:
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
           SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}
         run: |
-          # Check if there are commits to rebase
+          # Check if there are commits to cherry-pick
           COMMIT_COUNT=$(git log --oneline origin/main..origin/$SOURCE_BRANCH | wc -l)
           if [ "$COMMIT_COUNT" -eq 0 ]; then
-            echo "❌ No commits to rebase. $SOURCE_BRANCH has no commits unique to main."
+            echo "❌ No commits to cherry-pick. $SOURCE_BRANCH has no commits unique to main."
             exit 1
           fi
           
           # Create branch from origin/int in one command (avoids detached HEAD)
           git checkout -b $BRANCH_NAME origin/int
           
-          # Try to rebase feature-specific commits (main..feature) onto int
+          # Try to cherry-pick feature-specific commits (main..feature) onto int
           if git cherry-pick origin/main..origin/$SOURCE_BRANCH 2>&1 | grep -q "CONFLICT\|conflict"; then
-            # Rebase has conflicts - abort and do squashed merge instead
+            # cherry-pick has conflicts - abort and do squashed merge instead
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
-            git rebase --abort
+            git cherry-pick --abort
             
             # Do a squashed merge to show conflicts with markers
             git merge --squash origin/$SOURCE_BRANCH || true
             git add -A
             git commit -m "Merge commits from PR (CONFLICTS - NON-MERGEABLE)" || true
           else
-            # Rebase succeeded cleanly
+            # cherry-pick succeeded cleanly
             echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
           fi
           
