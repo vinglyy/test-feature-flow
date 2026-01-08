@@ -5,6 +5,10 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - main
+  push:
+    branches:
+      - feature
+      - main
 
 permissions:
   contents: write
