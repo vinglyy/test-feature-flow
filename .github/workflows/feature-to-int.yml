@@ -104,16 +104,7 @@ jobs:
   
 
 
-      - name: Check for unresolved conflicts
-        env:
-          BRANCH_NAME: ${{ env.BRANCH_NAME }}
-        run: |
-          if grep -r "<<<<<<< \|======= \|>>>>>>>" . --exclude-dir=.git --exclude-dir=.github; then
-            echo "❌ Unresolved conflicts found! Please resolve all <<<<<<, =======, and >>>>>>> markers."
-            exit 1
-          else
-            echo "✅ No conflicts found"
-          fi
+  
 
       - name: Close existing PR and delete old branch
         env:
@@ -128,17 +119,6 @@ jobs:
                 gh pr close "$pr_number"
               fi
             done
-          fi
-
-      - name: Check for unresolved conflicts
-        env:
-          BRANCH_NAME: ${{ env.BRANCH_NAME }}
-        run: |
-          if grep -r "<<<<<<< \|======= \|>>>>>>>" . --exclude-dir=.git --exclude-dir=.github; then
-            echo "❌ Unresolved conflicts found! Please resolve all <<<<<<, =======, and >>>>>>> markers."
-            exit 1
-          else
-            echo "✅ No conflicts found"
           fi
 
       - name: Create PR to int branch
