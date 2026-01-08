@@ -34,28 +34,38 @@ jobs:
       - name: Fetch all branches
         run: git fetch origin
 
-      - name: Create new branch from int and merge commits
+      - name: Create new branch from int and rebase commits
         run: |
-          # Start from feature and merge int to get proper conflict labels
-          git checkout origin/${{ github.head_ref }}
+          git checkout origin/int
           BRANCH_NAME="int-pr-${{ github.event.number }}"
           git checkout -b $BRANCH_NAME
           
-          # Reset to only include commits unique to feature (not from main)
-          git reset --hard origin/int
-          
-          # Cherry-pick only feature-specific commits (main..feature)
-          if git cherry-pick origin/main..origin/${{ github.head_ref }}; then
-            echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
-          else
-            # Merge failed - commit the conflicted state
+          # Try to rebase feature-specific commits (main..feature) onto int
+          if git rebase origin/main..origin/${{ github.head_ref }} 2>&1 | grep -q "CONFLICT\|conflict"; then
+            # Rebase has conflicts - abort and do squashed merge instead
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
+            git rebase --abort
+            
+            # Do a squashed merge to show conflicts with markers
+            git merge --squash origin/${{ github.head_ref }} || true
             git add -A
-            git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - REQUIRES RESOLUTION]" || true
+            git commit -m "Merge commits from PR #${{ github.event.number }} [CONFLICTS - NON-MERGEABLE]" || true
+          else
+            # Rebase succeeded cleanly
+            echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
           fi
           
           git push -f origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Check for unresolved conflicts
+        run: |
+          if grep -r "<<<<<<< \|======= \|>>>>>>>" . --exclude-dir=.git --exclude-dir=.github; then
+            echo "❌ Unresolved conflicts found! Please resolve all <<<<<<, =======, and >>>>>>> markers."
+            exit 1
+          else
+            echo "✅ No conflicts found"
+          fi
 
       - name: Create PR to int branch
         env:
@@ -63,17 +73,19 @@ jobs:
           MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_TITLE: "[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"
-          CONFLICT_TAG: ${{ env.MERGE_CONFLICT == 'true' && ' [CONFLICTS]' || '' }}
         run: |
           TITLE="${{ env.PR_TITLE }}"
           if [ "${{ env.MERGE_CONFLICT }}" = "true" ]; then
-            TITLE="${TITLE} [CONFLICTS]"
-            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch.\n\n⚠️ **MERGE CONFLICT DETECTED** - Please resolve conflicts in this PR before merging to int."
+            TITLE="${TITLE} [NON-MERGEABLE]"
+            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains squashed commits from the original PR.\n\n⚠️ **MERGE CONFLICTS DETECTED** - This PR is marked as non-mergeable due to conflicts. Rebase conflicts with the integration branch. Please resolve manually."
+            DRAFT="--draft"
           else
-            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains commits from the original PR merged onto the integration branch."
+            BODY="Automatic PR created from: #${{ github.event.number }}\n\nThis PR contains rebased commits from the original PR merged onto the integration branch."
+            DRAFT=""
           fi
           
           gh pr create \
+            $DRAFT \
             --title "$TITLE" \
             --body "$BODY" \
             --head ${{ env.NEW_BRANCH }} \
