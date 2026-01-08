@@ -66,7 +66,7 @@ jobs:
           git checkout -b $BRANCH_NAME origin/int
           
           # Try to rebase feature-specific commits (main..feature) onto int
-          if git rebase origin/main..origin/$SOURCE_BRANCH 2>&1 | grep -q "CONFLICT\|conflict"; then
+          if git cherry-pick origin/main..origin/$SOURCE_BRANCH 2>&1 | grep -q "CONFLICT\|conflict"; then
             # Rebase has conflicts - abort and do squashed merge instead
             echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
             git rebase --abort
