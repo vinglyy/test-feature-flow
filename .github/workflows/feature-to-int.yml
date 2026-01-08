@@ -169,7 +169,13 @@ jobs:
             --base int
 
       - name: Setup tmate session for debugging
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
+
         uses: mxschmitt/action-tmate@v3
+        
         with:
           limit-access-to-actor: false
         if: failure()
