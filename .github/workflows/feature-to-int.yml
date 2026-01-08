@@ -101,11 +101,7 @@ jobs:
           echo "int: $(git rev-parse origin/int)"
           echo "$BRANCH_NAME: $(git rev-parse origin/$BRANCH_NAME)"
 
-      - name: Setup tmate session for debugging
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: false
-        if: failure()
+  
 
 
       - name: Check for unresolved conflicts
@@ -172,3 +168,8 @@ jobs:
             --head $BRANCH_NAME \
             --base int
 
+      - name: Setup tmate session for debugging
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: false
+        if: failure()
