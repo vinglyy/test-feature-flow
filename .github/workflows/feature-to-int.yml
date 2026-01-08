@@ -83,6 +83,31 @@ jobs:
           git push -f origin $BRANCH_NAME
           echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
+      - name: Debug - View branch status
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}
+        run: |
+          echo "=== Current branches ==="
+          git branch -a
+          echo ""
+          echo "=== Commits: main..feature ==="
+          git log --oneline origin/main..origin/$SOURCE_BRANCH
+          echo ""
+          echo "=== Commits: int..int-pr ==="
+          git log --oneline origin/int..origin/$BRANCH_NAME
+          echo ""
+          echo "=== Branch tip info ==="
+          echo "int: $(git rev-parse origin/int)"
+          echo "$BRANCH_NAME: $(git rev-parse origin/$BRANCH_NAME)"
+
+      - name: Setup tmate session for debugging
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: false
+        if: failure()
+
+
       - name: Check for unresolved conflicts
         env:
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
