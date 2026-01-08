@@ -6,7 +6,7 @@ document.querySelectorAll('.nav-menu a').forEach(link => {
         switchSection(sectionId);
     });
 });
-
+//sneaky change
 function switchSection(sectionId) {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
