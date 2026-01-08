@@ -168,20 +168,33 @@ jobs:
             --head $BRANCH_NAME \
             --base int
 
-      - name: Setup session for debugging
+      - name: Setup tmate session for debugging
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
           MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
+
+        uses: mxschmitt/action-tmate@v3
+        
+        with:
+          limit-access-to-actor: false
         if: failure()
+
+      - name: Capture debug logs on failure
+        if: failure()
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y openssh-server
-          sudo service ssh start
+          mkdir -p debug-logs
+          git log --oneline -20 > debug-logs/git-log.txt
+          git branch -a > debug-logs/git-branches.txt
+          git status > debug-logs/git-status.txt
+          git diff --stat origin/int origin/$BRANCH_NAME > debug-logs/branch-diff.txt 2>&1 || true
 
-          echo "SSH server started"
-          echo "Connect with: ssh runner-user@$(hostname -I | awk '{print $1}')"
-          echo ""
-          read -p "Press ENTER after you've SSH'd in and done debugging..."
-
-          echo "Continuing workflow execution..."
+      - name: Upload debug logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-logs
+          path: debug-logs/
+          retention-days: 7
