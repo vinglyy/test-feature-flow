@@ -168,12 +168,12 @@ jobs:
             --head $BRANCH_NAME \
             --base int
 
-      - name: Setup tmate session for debugging
+      - name: Setup session for debugging
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
           MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
-
+        if: failure()
         run: |
           sudo apt-get update
           sudo apt-get install -y openssh-server
