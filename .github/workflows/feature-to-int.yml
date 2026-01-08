@@ -62,8 +62,8 @@ jobs:
             exit 1
           fi
           
-          git checkout origin/int
-          git checkout -b $BRANCH_NAME
+          # Create branch from origin/int in one command (avoids detached HEAD)
+          git checkout -b $BRANCH_NAME origin/int
           
           # Try to rebase feature-specific commits (main..feature) onto int
           if git rebase origin/main..origin/$SOURCE_BRANCH 2>&1 | grep -q "CONFLICT\|conflict"; then
