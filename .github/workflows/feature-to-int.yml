@@ -174,8 +174,9 @@ jobs:
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
           MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
 
-        uses: mxschmitt/action-tmate@v3
-        
-        with:
-          limit-access-to-actor: false
-        if: failure()
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-server
+          sudo service ssh start
+          echo "SSH started on port 22"
+          ip addr show  # Show IP address
