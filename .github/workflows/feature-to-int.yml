@@ -55,6 +55,13 @@ jobs:
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
           SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}
         run: |
+          # Check if there are commits to rebase
+          COMMIT_COUNT=$(git log --oneline origin/main..origin/$SOURCE_BRANCH | wc -l)
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "❌ No commits to rebase. $SOURCE_BRANCH has no commits unique to main."
+            exit 1
+          fi
+          
           git checkout origin/int
           git checkout -b $BRANCH_NAME
           
