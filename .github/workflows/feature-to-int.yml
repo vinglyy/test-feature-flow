@@ -92,6 +92,7 @@ jobs:
 
       - name: Create PR to int branch
         env:
+          GH_TOKEN: ${{ github.token }}
           NEW_BRANCH: ${{ env.NEW_BRANCH }}
           MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
           PR_TITLE: "[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"
