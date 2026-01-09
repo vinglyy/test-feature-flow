@@ -1,0 +1,165 @@
+name: Create PR from int branch with merged commits
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+  push:
+    branches:
+      - feature
+      - main
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR to merge'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-int-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all branches
+        run: git fetch origin
+
+      - name: Set branch variables
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            BRANCH_NAME="int-pr-${{ github.event.number }}"
+            SOURCE_BRANCH="${{ github.head_ref }}"
+          else
+            # For push events
+            BRANCH_NAME="int-pr-${{ github.ref_name }}-${{ github.run_id }}"
+            SOURCE_BRANCH="${{ github.ref_name }}"
+          fi
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "SOURCE_BRANCH=$SOURCE_BRANCH" >> $GITHUB_ENV
+
+      - name: Create new branch from int and cherry-pick commits
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}
+        run: |
+          # Check if there are commits to cherry-pick
+          COMMIT_COUNT=$(git log --oneline origin/main..origin/$SOURCE_BRANCH | wc -l)
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "❌ No commits to cherry-pick. $SOURCE_BRANCH has no commits unique to main."
+            exit 1
+          fi
+          
+          # Create branch from origin/int in one command (avoids detached HEAD)
+          git checkout -b $BRANCH_NAME origin/int
+          
+          # Try to cherry-pick feature-specific commits (main..feature) onto int
+          if git cherry-pick origin/main..origin/$SOURCE_BRANCH 2>&1 | grep -q "CONFLICT\|conflict"; then
+            # cherry-pick has conflicts - abort and do squashed merge instead
+            echo "MERGE_CONFLICT=true" >> $GITHUB_ENV
+            git cherry-pick --abort
+            
+            # Do a squashed merge to show conflicts with markers
+            git merge --squash origin/$SOURCE_BRANCH || true
+            git add -A
+            git commit -m "Merge commits from PR (CONFLICTS - NON-MERGEABLE)" || true
+          else
+            # cherry-pick succeeded cleanly
+            echo "MERGE_CONFLICT=false" >> $GITHUB_ENV
+          fi
+          
+          git push -f origin $BRANCH_NAME
+          echo "NEW_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Debug - View branch status
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}
+        run: |
+          echo "=== Current branches ==="
+          git branch -a
+          echo ""
+          echo "=== Commits: main..feature ==="
+          git log --oneline origin/main..origin/$SOURCE_BRANCH
+          echo ""
+          echo "=== Commits: int..int-pr ==="
+          git log --oneline origin/int..origin/$BRANCH_NAME
+          echo ""
+          echo "=== Branch tip info ==="
+          echo "int: $(git rev-parse origin/int)"
+          echo "$BRANCH_NAME: $(git rev-parse origin/$BRANCH_NAME)"
+
+  
+
+
+  
+
+      - name: Close existing PR and delete old branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+        run: |
+          # Close any existing PR for this branch (only for PR events)
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            gh pr list --head "$BRANCH_NAME" --base "int" --state open --json number -q '.[].number' | while read pr_number; do
+              if [ -n "$pr_number" ]; then
+                echo "Closing existing PR #$pr_number"
+                gh pr close "$pr_number"
+              fi
+            done
+          fi
+
+      - name: Create PR to int branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
+        run: |
+          TITLE="[Integration] PR - rebased commits"
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            TITLE="[Integration] PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"
+          fi
+          
+          if [ "$MERGE_CONFLICT" = "true" ]; then
+            TITLE="${TITLE} [NON-MERGEABLE]"
+            BODY="This PR contains rebased commits from the original PR.\n\n⚠️ **MERGE CONFLICTS DETECTED** - This PR is marked as non-mergeable due to conflicts. Please resolve manually."
+            DRAFT="--draft"
+          else
+            BODY="This PR contains rebased commits from the original PR merged onto the integration branch."
+            DRAFT=""
+          fi
+          
+          gh pr create \
+            $DRAFT \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --head $BRANCH_NAME \
+            --base int
+
+      - name: Setup tmate session for debugging
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          MERGE_CONFLICT: ${{ env.MERGE_CONFLICT }}
+
+        uses: mxschmitt/action-tmate@v3
+        
+        with:
+          limit-access-to-actor: false
+        if: failure()
