@@ -1,0 +1,25 @@
+name: Deploy Merge Check
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+
+jobs:
+  check-and-merge:
+    if: ${{ github.event.label.name == 'deploy' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout PR
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      # 2️⃣ Fail if merge conflict markers exist
+      - name: Check for merge conflict markers
+        run: |
+          if grep -R -n -e '<<<<<<<' -e '>>>>>>>' -e '=======' .; then
+            echo "❌ Merge conflict markers found! Resolve them before merging."
+            exit 1
+          else
+            echo "✅ No conflict markers found."
+          fi
