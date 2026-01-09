@@ -9,6 +9,10 @@ on:
     branches:
       - feature
       - main
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR to merge'
 
 permissions:
   contents: write
