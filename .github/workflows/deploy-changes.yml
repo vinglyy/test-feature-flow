@@ -2,7 +2,7 @@ name: Deploy Merge Check
 
 on:
   pull_request:
-    types: [labeled, synchronize]
+    types: [labeled, synchronize, unlabeled, reopened]
 
 jobs:
   check-and-merge:
@@ -23,3 +23,4 @@ jobs:
           else
             echo "✅ No conflict markers found."
           fi
+          
